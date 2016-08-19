@@ -19,6 +19,12 @@
 bool game_over = false; /* Set this to true when game is over */
 bool update_screen = true; /* Set to false to prevent screen update. */
 
+// Global Variables
+int lives  = 10;
+int score = 0;
+int level = 1;
+int time = 0;
+
 static char * hero_image =
 /**/	"H   H"
 /**/	"H   H"
@@ -27,7 +33,7 @@ static char * hero_image =
 /**/	"H   H";
 
 static char * zombie_image =
-/**/	"ZZfZZ"
+/**/	"ZZZZZ"
 /**/	"   Z "
 /**/	"  Z  "
 /**/	" Z   "
@@ -48,16 +54,6 @@ void setup(void) {
 	// Useful variables.
 	int w = screen_width(), wh = HERO_WIDTH, wz = ZOMBIE_WIDTH;
 	int h = screen_height(), hh = HERO_HEIGHT, hz = ZOMBIE_HEIGHT;
-
-	//Inner Border
-	//Bottom Border
-	draw_line( 0, 0, w - 1, 0, '*' );
-	//Top Border
-	draw_line( 0, h - 1, w - 1, h - 1, '#' );
-	//Left Border
-	draw_line( 0, 0, 0, h-1, '*' );
-	//Right Border
-	draw_line( w-1, 0, w - 1, h-1, '*' );
 
 	// Keep the next line intact.
 	show_screen();
@@ -140,7 +136,7 @@ void process(void) {
 		}
 
 		// (v) Test to see if the zombie hit the top or bottom border.
-		if ( zy == 0  || zy == h - 5 ) {
+		if ( zy == 6  || zy == h - 5 ) {
 			zdy = -zdy;
 			dir_changed = true;
 		}
@@ -157,11 +153,21 @@ void process(void) {
 	// Leave next line intact
 	clear_screen();
 
-	// (b) Draw the border (process).
-	draw_line( 0, 0, w - 1, 0, '*' );
-	draw_line( 0, h-1, w - 1, h-1, '*' );
-	draw_line( 0, 0, 0, h-1, '*' );
-	draw_line( w-1, 0, w - 1, h-1, '*' );
+	// --- Inner Game Border --- //
+	// Upper Top Border
+	draw_line(0, 0, w - 1, 0, '*');
+	// Inner Top Border
+	draw_line(0, 6, w - 1, 6, '*');
+	//Bottom Border
+	draw_line(0, h-1, w - 1, h-1, '*');
+	//Left Border
+	draw_line(0, 0, 0, h-1, '*');
+	//Right Border
+	draw_line(w-1, 0, w - 1, h-1, '*');
+
+	// --- Info Panel --- //
+	draw_formatted(w/4, 3, "Lives = %2d *Score = %2d *Level = %2d *Time = %2d",
+		       	lives, score, level, time);
 
 	// (l)	Draw the hero.
 	sprite_draw( hero );
