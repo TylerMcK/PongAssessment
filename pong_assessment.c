@@ -128,6 +128,14 @@ void HelpScreen(void) {
 	return;
 }
 
+//Quit screen
+void QuitScreen(void) {
+	clear_screen();
+	draw_string( / 2, SCREEN_WIDTH / 2, "Quit Screen");
+	show_screen();
+	getchar();
+}
+
 // Play one turn of game.
 void process(void) {
 	currentTime = get_current_time() - startingTime;
@@ -168,6 +176,11 @@ void process(void) {
 		initial = false;
 		EnvironmentSetup();
 		pauseTime += get_current_time() - tempTime;
+	}
+
+	if (key == 'q') {
+		QuitScreen();
+		game_over = true;
 	}
 
 	// (q.a) Test to move the zombie if key is 'z' or ERROR.
