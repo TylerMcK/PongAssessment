@@ -144,7 +144,7 @@ void process(void) {
 
 	// --- Key Inputs --- //
 	// -- Player Controls -- //
-	// Move player Up
+	// Move player up
 	if ( key == 'w' && py > 7 ) {
 		sprite_move( player, 0, -1 );
 	}
