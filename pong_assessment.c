@@ -16,11 +16,12 @@
 int PaddleHeight() {
 	int height = 7;
 	if (screen_height() < 21) {
-		size = (screen_height() - 5 - 1) / 2;
+		height = (screen_height() - 5 - 1) / 2;
 	}
+	return height;
 }	
 
-#define PLAYER_HEIGHT (5)
+#define PLAYER_HEIGHT (PaddleHeight())
 // Game state.
 bool game_over = false; /* Set this to true when game is over */
 bool update_screen = true; /* Set to false to prevent screen update. */
@@ -41,7 +42,7 @@ int sh;
 int pw;
 int ph;
 	
-static char * player =
+static char * player_char =
 /**/	"|"
 /**/	"|"
 /**/	"|"
@@ -50,7 +51,7 @@ static char * player =
 /**/	"|"
 /**/	"|"
 
-static char * msg_image =
+//static char * msg_image =
 /**/	"Goodbye and thank-you for playing ZombieDash Jr."
 /**/	"            Press any key to exit...            ";
 
@@ -91,7 +92,7 @@ void setup(void) {
 	int pw = PLAYER_WIDTH, ph = PLAYER_HEIGHT;
 	// --- Create and Draw Sprites --- //
 	// Player Entity
-	player = sprite_create(3, (sh-ph)/2, pw, ph, "|");	
+	player = sprite_create(3, (sh-ph)/2, pw, ph, player_char);	
 
 	sprite_draw(player);
 	
@@ -139,17 +140,16 @@ void process(void) {
 
 	// (g)	Get the current screen coordinates of the hero in integer variables 
 	//		by rounding the actual coordinates.
-	int px = sprite_x(player);
 	int py = sprite_y(player);
 
 	// --- Key Inputs --- //
 	// -- Player Controls -- //
 	// Move player Up
-	if ( key == 'w' && px > 1 ) {
+	if ( key == 'w' && py > 7 ) {
 		sprite_move( player, 0, -1 );
 	}
 	// Move player down
-	else if ( key == 's' && px < sw - pw - 1) {
+	else if ( key == 's' && py < sh - PLAYER_HEIGHT - 1) {
 		sprite_move( player, 0, +1 );
 	}
 	// -- System Controls -- //
