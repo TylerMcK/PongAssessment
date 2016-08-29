@@ -35,7 +35,9 @@ int currentTime;
 int realTime = 0;
 int pauseTime = 0;
 
+
 bool initial = true;
+bool dir_changed;
 
 int sw;
 int sh; 
@@ -57,6 +59,7 @@ static char * player_char =
 
 // Declare sprite_ids
 sprite_id player;
+sprite_id ball;
 
 // Environment Setup
 void EnvironmentSetup(void) {
@@ -79,23 +82,34 @@ void EnvironmentSetup(void) {
 	draw_formatted(sw/4, 3, "Lives = %2d *Score = %2d *Level = %2d *Time = %2d",
 		       	lives, score, level, realTime);
 
-	show_screen();
 
 }
 
 
+void SetupBall(void) {
+	sprite_move_to(ball, sw / 2, (sh + 7)/2);
+	sprite_draw(ball);
+	sprite_turn_to(ball, 0.4, 0);
+	sprite_turn(ball, 180); 
+}
 
 // Game setup
 void setup(void) {
 	// Variable Declaration
 	startingTime = get_current_time();
+	int sh = screen_height(), sw = screen_width();
 	int pw = PLAYER_WIDTH, ph = PLAYER_HEIGHT;
 	// --- Create and Draw Sprites --- //
 	// Player Entity
-	player = sprite_create(3, (sh-ph)/2, pw, ph, player_char);	
+	player = sprite_create(3, (sh + ph)/2, pw, ph, player_char);	
 
 	sprite_draw(player);
-	
+
+	// Ball Entity
+	ball = sprite_create(sw/2, (sh + 7)/2, 1, 1, "O");
+
+	sprite_draw(ball);	
+	SetupBall();
 	// (n)	Set up the zombie at a random location on the screen.
 	//int xrange = w - wz - 2;
 	//int yrange = h - hz - 2;
@@ -131,24 +145,65 @@ void HelpScreen(void) {
 //Quit screen
 void QuitScreen(void) {
 	clear_screen();
-	draw_string( / 2, SCREEN_WIDTH / 2, "Quit Screen");
+	draw_string(30, 10, "Quit Screen");
 	show_screen();
 	getchar();
+}
+
+// Ball physics
+void MoveBall(void) {
+	sprite_step(ball);
+
+	int py = sprite_y(player);
+	ph = PLAYER_HEIGHT;
+
+	int bx = round(sprite_x(ball));
+	int by = round(sprite_y(ball));
+
+	double bdx = sprite_dx(ball);
+	double bdy = sprite_dy(ball);
+	dir_changed = false;
+
+	if (bx == 0) {
+		SetupBall();
+		lives--;
+	} else if (bx == sw - 1 && level == 1) {
+		bdx = -bdx;
+		dir_changed = true;
+	}
+
+	if (by == 6 || by == sh - 1) {
+		bdy = -bdy;
+		dir_changed = true;
+	}
+
+	// --- Sprite Collision Check --- //
+	// Ball with player
+	if (bx == 4 && by >= py && by <= py + ph + 1) {
+		bdx = -bdx;
+
+		dir_changed = true;
+		score++;
+	}
+
+	if (dir_changed) {
+		sprite_back(ball);
+		sprite_turn_to(ball, bdx, bdy);
+	}
+
 }
 
 // Play one turn of game.
 void process(void) {
 	currentTime = get_current_time() - startingTime;
 	realTime = currentTime - pauseTime;
+	int py = sprite_y(player);
 
 	// Check player input
 	int key = get_char();
 
 	EnvironmentSetup();
 
-	// (g)	Get the current screen coordinates of the hero in integer variables 
-	//		by rounding the actual coordinates.
-	int py = sprite_y(player);
 
 	// --- Key Inputs --- //
 	// -- Player Controls -- //
@@ -160,6 +215,7 @@ void process(void) {
 	else if ( key == 's' && py < sh - PLAYER_HEIGHT - 1) {
 		sprite_move( player, 0, +1 );
 	}
+
 	// -- System Controls -- //
 	// Level change
 	else if (key == 'l') {
@@ -178,10 +234,13 @@ void process(void) {
 		pauseTime += get_current_time() - tempTime;
 	}
 
+	//Quit Screen
 	if (key == 'q') {
 		QuitScreen();
 		game_over = true;
 	}
+
+	MoveBall();
 
 	// (q.a) Test to move the zombie if key is 'z' or ERROR.
 	//else if ( key == 'z' || key < 0 ) {
@@ -218,8 +277,9 @@ void process(void) {
 	// (q.b) End else-if test to move the zombie if key is 'z' or negative.
 	//}
 	
-	// (l)	Draw the hero.
+	// Draw Sprites
 	sprite_draw(player);
+	sprite_draw(ball);
 
 	// (x)	Draw the zombie.
 	//sprite_draw( zombie );
