@@ -43,6 +43,11 @@ int sw;
 int sh; 
 int pw;
 int ph;
+
+// Location Variables
+int by;
+int py;
+int oy;
 	
 static char * player_char =
 /**/	"|"
@@ -59,6 +64,7 @@ static char * player_char =
 
 // Declare sprite_ids
 sprite_id player;
+sprite_id opponent;
 sprite_id ball;
 
 // Environment Setup
@@ -90,7 +96,7 @@ void SetupBall(void) {
 	sprite_move_to(ball, sw / 2, (sh + 7)/2);
 	sprite_draw(ball);
 	sprite_turn_to(ball, 0.4, 0);
-	sprite_turn(ball, 180); 
+	sprite_turn(ball, 140); 
 }
 
 // Game setup
@@ -102,14 +108,16 @@ void setup(void) {
 	// --- Create and Draw Sprites --- //
 	// Player Entity
 	player = sprite_create(3, (sh + ph)/2, pw, ph, player_char);	
-
 	sprite_draw(player);
 
 	// Ball Entity
 	ball = sprite_create(sw/2, (sh + 7)/2, 1, 1, "O");
-
 	sprite_draw(ball);	
 	SetupBall();
+
+	// Opponent Entity
+	opponent = sprite_create(sw - 3, (sh + ph)/2, pw, ph, player_char);	
+
 	// (n)	Set up the zombie at a random location on the screen.
 	//int xrange = w - wz - 2;
 	//int yrange = h - hz - 2;
@@ -154,7 +162,8 @@ void QuitScreen(void) {
 void MoveBall(void) {
 	sprite_step(ball);
 
-	int py = sprite_y(player);
+	oy = sprite_y(opponent);
+
 	ph = PLAYER_HEIGHT;
 
 	int bx = round(sprite_x(ball));
@@ -164,12 +173,19 @@ void MoveBall(void) {
 	double bdy = sprite_dy(ball);
 	dir_changed = false;
 
+	// Ball hit LEFT side
 	if (bx == 0) {
 		SetupBall();
 		lives--;
-	} else if (bx == sw - 1 && level == 1) {
-		bdx = -bdx;
-		dir_changed = true;
+	// Ball hits RIGHT side
+	} else if (bx == sw - 2) {
+		if (level == 1) {
+			bdx = -bdx;
+			dir_changed = true;
+		} else if (level > 1) {
+			SetupBall();
+			score++;
+		}
 	}
 
 	if (by == 6 || by == sh - 1) {
@@ -186,18 +202,38 @@ void MoveBall(void) {
 		score++;
 	}
 
+	// Ball with opponent
+	if (bx == sw - 4 && by >= oy && by <= oy + ph + 1) {
+		bdx = -bdx;
+		dir_changed = true;
+	}
+
 	if (dir_changed) {
 		sprite_back(ball);
 		sprite_turn_to(ball, bdx, bdy);
 	}
+	
+}
 
+// Opponent physics
+void MoveOpponent(void) {
+	by = sprite_y(ball);
+	int omy = oy + ph/2;
+
+	if (omy > by && oy != 7) {
+		sprite_move(opponent, 0, -1);
+	} else if (omy < by && oy + ph != sh - 1) {
+		sprite_move(opponent, 0, +1);
+	}
 }
 
 // Play one turn of game.
 void process(void) {
 	currentTime = get_current_time() - startingTime;
 	realTime = currentTime - pauseTime;
-	int py = sprite_y(player);
+	py = sprite_y(player);
+	by = sprite_y(ball);
+	oy = sprite_y(opponent);
 
 	// Check player input
 	int key = get_char();
@@ -241,6 +277,10 @@ void process(void) {
 	}
 
 	MoveBall();
+	
+	if (level > 1) {
+		MoveOpponent();
+	}
 
 	// (q.a) Test to move the zombie if key is 'z' or ERROR.
 	//else if ( key == 'z' || key < 0 ) {
@@ -280,6 +320,9 @@ void process(void) {
 	// Draw Sprites
 	sprite_draw(player);
 	sprite_draw(ball);
+	if (level > 1) {
+		sprite_draw(opponent);
+	}
 
 	// (x)	Draw the zombie.
 	//sprite_draw( zombie );
