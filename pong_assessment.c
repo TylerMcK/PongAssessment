@@ -44,7 +44,13 @@ int sh;
 int pw;
 int ph;
 
+//Levl 3
+int x_star;
+int y_star;
+int temp3 = 1;
+
 // Location Variables
+int bx;
 int by;
 int py;
 int oy;
@@ -95,7 +101,7 @@ void EnvironmentSetup(void) {
 void SetupBall(void) {
 	sprite_move_to(ball, sw / 2, (sh + 7)/2);
 	sprite_draw(ball);
-	sprite_turn_to(ball, 0.4, 0);
+	sprite_turn_to(ball, 0.6, 0);
 	sprite_turn(ball, 140); 
 }
 
@@ -117,21 +123,6 @@ void setup(void) {
 
 	// Opponent Entity
 	opponent = sprite_create(sw - 3, (sh + ph)/2, pw, ph, player_char);	
-
-	// (n)	Set up the zombie at a random location on the screen.
-	//int xrange = w - wz - 2;
-	//int yrange = h - hz - 2;
-	//srand( get_current_time() );
-	//int zx = rand() % xrange + 1;
-	//int zy = rand() % yrange + 1;
-	//zombie = sprite_create( zx, zy, wz, hz, zombie_image );
-
-	// (o) Draw the zombie.
-	//sprite_draw( zombie );
-
-	// (p) Set the zombie in motion.
-	//sprite_turn_to ( zombie, 0.2, 0 );
-	//sprite_turn( zombie, rand() % 360 );
 
 	// Refresh the screen
 	show_screen();
@@ -227,13 +218,72 @@ void MoveOpponent(void) {
 	}
 }
 
+//Accelerate the ball to centre
+void accelerate_ball_towards_centre(void) {
+	double x_diff = x_star - sprite_x(ball);
+	double y_diff = y_star - sprite_y(ball);
+
+    	double dist_squared = pow(x_diff, 2) + pow(y_diff, 2);
+
+    	if (dist_squared < 1e-10) {
+		dist_squared = 1e-10;
+	}
+
+    	double dist = sqrt(dist_squared);
+
+    	double dx = sprite_dx(ball);
+	double dy = sprite_dy(ball);
+    	
+    	double a = 1/dist_squared;
+
+    	dx = dx + (a * x_diff / dist);
+	dy = dy + (a * y_diff / dist);
+
+	int speed = hypot(dx, dy);
+    
+    	if (speed > 1) {
+		dx = dx / speed;
+		dy = dy / speed;
+	}
+
+    	sprite_turn_to(ball, dx, dy);
+}
+
+//Level 3 star physics
+void StarPhysics(void) {
+
+	if (temp3 == 1) {
+		x_star = screen_width() / 2;
+		y_star = screen_height() / 2;
+
+		double sdx = x_star - sprite_x(ball);
+		double sdy = y_star - sprite_y(ball);
+
+		double dist = hypot(sdx, sdy);
+
+		sdx  = sdx / dist;
+		sdy = sdy / dist;
+
+		sdx = sdx * 0.21;
+		sdy = sdy * 0.21;
+
+		sprite_turn_to(ball, sdx, sdy);
+
+		accelerate_ball_towards_centre();
+	}
+}
+
 // Play one turn of game.
 void process(void) {
 	currentTime = get_current_time() - startingTime;
 	realTime = currentTime - pauseTime;
 	py = sprite_y(player);
+	bx = sprite_x(ball);
 	by = sprite_y(ball);
 	oy = sprite_y(opponent);
+
+	x_star = screen_width() / 2;
+	y_star = screen_height() / 2;
 
 	// Check player input
 	int key = get_char();
@@ -282,40 +332,19 @@ void process(void) {
 		MoveOpponent();
 	}
 
-	// (q.a) Test to move the zombie if key is 'z' or ERROR.
-	//else if ( key == 'z' || key < 0 ) {
-		// (r) Zombie takes one step.
-	//	sprite_step( zombie );
+	if (level == 3) {
+		draw_char(x_star, y_star, '*');
 
-		// (s) Get screen location of zombie.
-	//	int zx = round( sprite_x( zombie ) );
-	//	int zy = round( sprite_y( zombie ) );
+		if (bx > sw/2 - 10 && bx < sw/2 + 10 &&
+		    by < sh/2 + 10 && by > sh/2 - 10) { 	
+			StarPhysics();
+			temp3++;
+		} else {
+			temp3 = 1;
+		}
+	}
 
-		// (t) Get the displacement vector of the zombie.
-	//	double zdx = sprite_dx( zombie );
-	//	double zdy = sprite_dy( zombie );
-	//	bool dir_changed = false;
-
-		// (u) Test to see if the zombie hit the left or right border.
-	//	if ( zx == 0 || zx == w - 5 ) {
-	//		zdx = -zdx;
-	//		dir_changed = true;
-	//	}
-
-		// (v) Test to see if the zombie hit the top or bottom border.
-	//	if ( zy == 6  || zy == h - 5 ) {
-	//		zdy = -zdy;
-	//		dir_changed = true;
-	//	}
-
-		// (w) Test to see if the zombie needs to step back and change direction.
-	//	if ( dir_changed ) {
-	//		sprite_back( zombie );
-	//		sprite_turn_to( zombie, zdx, zdy );
-	//	}
-
-	// (q.b) End else-if test to move the zombie if key is 'z' or negative.
-	//}
+	
 	
 	// Draw Sprites
 	sprite_draw(player);
