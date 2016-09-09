@@ -9,8 +9,6 @@
 #define DELAY (10) /* Millisecond delay between game updates */
 
 #define PLAYER_WIDTH (1)
-#define ZOMBIE_WIDTH (5)
-#define ZOMBIE_HEIGHT (5)
 
 //FINISH
 int PaddleHeight() {
@@ -54,6 +52,8 @@ int anomalyDelay = 0;
 
 //Level 4
 bool initial4 = true;
+int barrierArray1[1];
+int barrierArray2[1];
 
 // Location Variables
 int bx;
@@ -107,6 +107,22 @@ static char * helpScreen_char =
 /**/"   h: Help Screen    "
 /**/"   q: Quit           ";
 
+static char * quitScreen_char =
+/**/"   Thanks for   "
+/**/"    Playing!    "
+/**/"                "
+/**/"  Press any key "
+/**/"   to exit...   ";
+
+static char * gameOverScreen_char =
+/**/"       Game Over!        "
+/**/"                         "
+/**/"     You ran out of      "
+/**/"          lives.         "
+/**/"                         "
+/**/" Press 'p' to play again "
+/**/"   Press 'q' to quit     ";
+
 
 // Declare sprite_ids
 sprite_id player;
@@ -119,6 +135,8 @@ sprite_id three;
 sprite_id two;
 sprite_id one;
 sprite_id helpScreen;
+sprite_id quitScreen;
+sprite_id gameOverScreen;
 
 // Environment Setup
 void EnvironmentSetup(void) {
@@ -144,27 +162,21 @@ void EnvironmentSetup(void) {
 
 }
 
-
 void SetupBall(void) {
+	int launchDirection = rand() % 90;
+	launchDirection += 135;
 	sprite_move_to(ball, sw / 2, sh/2);
 	sprite_draw(ball);
-	sprite_turn_to(ball, 0.5, 0);
-	int launchDirection = rand() % 90;
-	sprite_turn(ball, 230); 
+	sprite_turn_to(ball, 0.3, 0);
+	sprite_turn(ball, launchDirection); 
 }
 
-// Create Initial Barriers Array 
-void CreateBarriersArray(void) {
-	int msw = screen_width() / 2;
-	int shs1 = (screen_height() + 5) * 1/3;
-	int shs2 = (screen_height() + 5) * 2/3;
-	int qsw1 = screen_width() * 1/4;
-	
-	
-}
 
 // Game setup
 void setup(void) {
+	// Seed random number generator
+	srand(get_current_time());
+
 	// Variable Declaration
 	startingTime = get_current_time();
 	int sh = screen_height(), sw = screen_width();
@@ -187,7 +199,9 @@ void setup(void) {
         two = sprite_create(sw/2, sh/2, 5, 5, two_char);
 	one = sprite_create(sw/2, sh/2, 5, 5, one_char);	
 
-	helpScreen = sprite_create(sw/2, sh/2, 21, 7, helpScreen_char);
+	helpScreen = sprite_create(sw/2 - 10, sh/2 - 3, 21, 7, helpScreen_char);
+	quitScreen = sprite_create(sw/2 - 8, sh/2 - 2, 16, 5, quitScreen_char);
+	gameOverScreen = sprite_create(sw/2 - 12, sh/2 - 3, 25, 7, gameOverScreen_char); 
 
 	// Opponent Entity
 	opponent = sprite_create(sw - 3, (sh + ph)/2, pw, ph, player_char);	
@@ -232,13 +246,31 @@ void HelpScreen(void) {
 // Quit screen
 void QuitScreen(void) {
 	clear_screen();
-	draw_string(30, 10, "Quit Screen");
+	sprite_draw(quitScreen);
 	show_screen();
 	getchar();
 }
 
+// Game Over Screen
+void GameOverScreen(void) {
+	clear_screen();
+	sprite_draw(gameOverScreen);
+	show_screen();
+	char key = getchar();
+	if (key == 'q') {
+		game_over = true;
+	} else if (key == 'p') {
+		level = 1;
+		score = 0;
+		realTime = 0;
+		lives = 9;
+		HelpScreen();
+	}
+	return;
+}
+
 // Ball physics
-void MoveBall() {
+void MoveBall(int barrierArray1[], int barrierArray2[]) {
 	sprite_step(ball);
 
 	oy = sprite_y(opponent);
@@ -255,6 +287,10 @@ void MoveBall() {
 	// Ball hit LEFT side
 	if (bx == 0) {
 		SetupBall();
+		anomalyDelay = 0;
+		if (lives != 1 && !initial) {
+			countdown();
+		}
 		lives--;
 	// Ball hits RIGHT side
 	} else if (bx == sw - 2) {
@@ -273,7 +309,7 @@ void MoveBall() {
 	}
 
 	// --- Sprite Collision Check --- //
-	// Ball with player
+	// Ball with right of player
 	if (bx == 4 && by >= py && by <= py + ph + 1) {
 		bdx = -bdx;
 
@@ -407,8 +443,8 @@ void StarPhysics(void) {
 		sdx  = sdx / dist;
 		sdy = sdy / dist;
 
-		sdx = sdx * 0.21;
-		sdy = sdy * 0.21;
+		sdx = sdx * 0.20;
+		sdy = sdy * 0.20;
 
 		sprite_turn_to(ball, sdx, sdy);
 
@@ -416,22 +452,16 @@ void StarPhysics(void) {
 	}
 }
 
-//Level 4 barrier setup
-/*void SetupBarriers(void) {
-	int swq1 = screen_width() * 1/4;
-	int swq3 = screen_width() * 3/4;
-	int shs1 = (screen_height() - 7) * 1/3;
-	int shs2 = (screen_height() - 7) * 2/3;
-
-	draw_line(swq1, shs1, swq3, shs1, '=');
-	draw_line(swq1, shs2, swq3, shs2, '=');
-}*/
-
-
 // Play one turn of game.
 void process(void) {
 	currentTime = get_current_time() - startingTime;
 	realTime = currentTime - pauseTime;
+
+	if (lives == 0) {
+		GameOverScreen();
+	}
+
+	int levelTemp = level;
 	
 	// Time formatting
 	seconds = realTime % 60;
@@ -450,6 +480,7 @@ void process(void) {
 
 	EnvironmentSetup();
 
+	
 
 	// --- Key Inputs --- //
 	// -- Player Controls -- //
@@ -468,15 +499,16 @@ void process(void) {
 		if (level == 4) {
 			level = 1;
 		} else {
+		initial = false;
 		       level++;
 		}
+		SetupBall();
 		countdown();
 	}
 	// Help Screen
 	if (key == 'h' || initial) {
 		int tempTime = get_current_time();
 		HelpScreen();
-		initial = false;
 		EnvironmentSetup();
 		pauseTime += get_current_time() - tempTime;
 	}
@@ -487,7 +519,7 @@ void process(void) {
 		game_over = true;
 	}
 
-	MoveBall();
+	MoveBall(barrierArray1, barrierArray2);
 	
 	if (level > 1) {
 		MoveOpponent();
@@ -513,6 +545,13 @@ void process(void) {
 
 	if (level == 4) {
 		if (initial4) {
+			int swq1 = screen_width() * 1/4;
+			int swq2 = screen_width() * 3/4;
+			int barrierSize = swq2 - swq1 + 1;
+
+			int barrierArray1[barrierSize];
+			int barrierArray2[barrierSize];
+
 			initial4 = false;
 		}
 	} else { 
@@ -525,6 +564,8 @@ void process(void) {
 	if (level > 1) {
 		sprite_draw(opponent);
 	}
+
+	initial = false;
 }
 
 // Program entry point.
